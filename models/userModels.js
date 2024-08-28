@@ -3,6 +3,11 @@ const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const { nanoid } = require("nanoid");
 
+const seenMessageSchema = new mongoose.Schema({
+    publicId: { type: String, required: true },
+    lastSeenMessage: { type: Number, required: true },
+});
+
 const userSchema = new mongoose.Schema({
     // name userID phto
     name: {
@@ -69,10 +74,10 @@ const userSchema = new mongoose.Schema({
         },
     },
     rooms: {
-        // type: [mongoose.Schema.ObjectId],
-        // ref: "Room",
         type: [String],
     },
+
+    seenMessages: [seenMessageSchema],
 
     online: {
         // for other users to see
