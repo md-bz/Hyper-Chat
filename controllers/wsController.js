@@ -1,33 +1,14 @@
-const HyperExpress = require("hyper-express");
 const { verifyToken } = require("./authController");
 const User = require("../models/userModels");
 const Room = require("../models/roomModels");
+const catchAsync = require("../utils/wsCatchAsync");
+const { send, sendError, sendFormatError } = require("../utils/wsFeatures");
 
-const wsRouter = new HyperExpress.Router();
+const fs = require("fs/promises");
+const Private = require("../models/privateModel");
+const Group = require("../models/groupModel");
+
 const activeSockets = {};
-
-function send(ws, name = "noting", content = {}) {
-    return ws.send(
-        JSON.stringify({
-            name,
-            content,
-        })
-    );
-}
-
-async function sendError(ws, reason = "") {
-    return send(ws, "error", { reason });
-}
-
-function catchAsync(f) {
-    return async function (ws) {
-        try {
-            return await f.apply(this, arguments);
-        } catch (e) {
-            sendError(ws, String(e));
-        }
-    };
-}
 
 const sendUpdate = catchAsync(async (ws, userId, latestUpdateDate) => {
     // latestUpdateDate ? latestUpdateDate : 0;
@@ -36,6 +17,7 @@ const sendUpdate = catchAsync(async (ws, userId, latestUpdateDate) => {
     const rooms = await Room.find(
         {
             users: userId,
+            // #TODO: updates based on timestamp
             // messages: { timestamp: { $gte: "1987-10-19" } },
         },
         {
@@ -44,7 +26,6 @@ const sendUpdate = catchAsync(async (ws, userId, latestUpdateDate) => {
             publicId: 1,
         }
     );
-    console.log(rooms);
 
     return send(ws, "update", {
         update: rooms,
@@ -52,8 +33,32 @@ const sendUpdate = catchAsync(async (ws, userId, latestUpdateDate) => {
     });
 });
 
-const handleLogin = catchAsync(async (ws, content) => {
-    const { token, latestUpdateDate } = content;
+exports.getUpdates = catchAsync(async (ws, content) => {
+    const { chats } = content;
+    const updates = [];
+
+    for (let i = 0; i < chats.length; i++) {
+        const chat = chats[i];
+
+        const update = await Room.find(
+            {
+                publicId: chat.publicId,
+            },
+            {
+                messages: { $slice: [chat.lastMessageId, 10000] },
+            }
+        );
+        updates.push(update);
+    }
+
+    send(ws, "update", updates);
+});
+
+exports.handleLogin = catchAsync(async (ws, content) => {
+    const { token } = content;
+
+    if (!token) return ws.close(1002, "no token provided");
+
     let decoded;
 
     try {
@@ -70,11 +75,10 @@ const handleLogin = catchAsync(async (ws, content) => {
 
     ws.publicId = user.publicId;
     ws.privateId = user.privateId;
+    ws.mongoId = user._id;
     ws.name = user.name;
     ws.subscribe(ws.publicId);
     activeSockets[ws.publicId] = ws;
-
-    console.log("rooms is", user.rooms);
 
     user.rooms.forEach((room) => ws.subscribe(room));
 
@@ -83,68 +87,99 @@ const handleLogin = catchAsync(async (ws, content) => {
         name: ws.name,
         usernameId: user.usernameId,
     });
-
-    sendUpdate(ws, user._id, latestUpdateDate);
 });
 
-const handleTextMessage = catchAsync(async (ws, content) => {
-    const { publicId, text } = content;
-    if (!ws.is_subscribed(publicId)) return sendError(ws, "unauthorized");
+exports.handleTextMessage = catchAsync(async (ws, content) => {
+    const { publicId, text, secret } = content;
+
+    if (!publicId || !text) return sendFormatError(ws, ["publicId", "text"]);
+
+    if (!ws.is_subscribed(publicId)) {
+        const room = await Room.findOne({ publicId, users: ws.mongoId });
+
+        if (!room) return sendError(ws, "unauthorized");
+        ws.subscribe(publicId);
+    }
 
     const room = await Room.findOneAndUpdate(
         { publicId },
         {
             $push: { messages: { text, from: ws.publicId } },
         },
-        { new: true }
+        { new: true, projection: { messages: 1, messages: { $slice: -1 } } }
     );
+
     if (!room) return sendError(ws, "no chat with that id");
+
+    const numberId = room.messages[0].numberId;
+    console.log("room is ", room);
+
     const response = JSON.stringify({
         event: "text message",
         content: {
             publicId,
+            numberId,
             sender: {
                 publicId: ws.publicId,
                 name: ws.name,
             },
             text,
+            secret,
         },
-
-        latestUpdateDate: Date.now(),
     });
 
     ws.send(response);
     return ws.publish(content.publicId, response);
 });
 
-async function handleJoin(ws, content) {
-    const { chatId } = content;
-    if (!chatId) return sendError(ws, "no id provided");
+exports.handleJoin = catchAsync(async (ws, content) => {
+    const { inviteLink } = content;
+    if (!inviteLink) return sendFormatError(ws, ["invite link"]);
 
-    const chat = await Room.findOne({ chatId });
-    if (!chat) return sendError(ws, "no chat with that id");
+    const user = await User.findOne({ publicId: ws.publicId });
 
-    const user = await User.findOne({
-        privateId: ws.privateId,
+    const text = `${user.name} joined the group by invite link.`;
+    const room = await Room.findOneAndUpdate(
+        { inviteLink },
+        {
+            $push: {
+                users: user._id,
+                messages: {
+                    from: "server",
+                    text,
+                },
+            },
+        },
+        { new: true, projection: { messages: 1, messages: { $slice: -1 } } }
+    );
+    if (!room) return sendError(ws, "no chat with that invite link");
+
+    user.rooms.push(room.publicId);
+    await user.save({ validateBeforeSave: false });
+    ws.subscribe(room.publicId);
+
+    const response = JSON.stringify({
+        event: "text message",
+        content: {
+            publicId: room.publicId,
+            numberId: room.messages[0].numberId,
+            sender: {
+                publicId: "Server",
+                name: "Server",
+            },
+            text,
+        },
     });
 
-    chat.users.push(user._id);
+    ws.send(response);
+    return ws.publish(room.publicId, response);
+});
 
-    await chat.save();
-
-    const { name, privateId, usernameID } = user;
-    ws.publish(chat.publicId, {
-        name: "new member",
-        content: { name, privateId, usernameID },
-    });
-}
-
-async function handleCreateChat(ws, content) {
+exports.handleCreateChat = catchAsync(async (ws, content) => {
     const { publicIds, type, name } = content; // public id of the other person
     const users = await User.find({
         publicId: { $in: [ws.publicId, ...publicIds] },
     });
-    await Room.deleteMany();
 
     let usersId = [];
     let usersInfo = [];
@@ -154,25 +189,43 @@ async function handleCreateChat(ws, content) {
         usersId.push(user._id);
 
         const { name, publicId, usernameId } = user;
+
         usersInfo.push({ name, publicId, usernameId });
 
         if (publicId === ws.publicId) creator = user;
     });
 
-    const room = await Room.create({
-        users: users.map((user) => user._id),
-        creator: creator._id,
-        type,
-        name,
-    });
+    let room;
+    if (type === "private") {
+        room = await Private.create({
+            users: users.map((user) => user._id),
+            creator: creator._id,
+            name,
 
-    users.forEach(async (user) => {
+            messages: [{ from: "server", text: "chat created", numberId: 1 }],
+        });
+    } else if (type === "group") {
+        room = await Group.create({
+            users: users.map((user) => user._id),
+            creator: creator._id,
+            name,
+        });
+    }
+
+    for (let i = 0; i < users.length; i++) {
+        const user = users[i];
         user.rooms.push(room.publicId);
+        user.seenMessages.push({
+            publicId: room.publicId,
+            lastSeenMessage: 0,
+        });
         await user.save({ validateBeforeSave: false });
+
         if (activeSockets[user.publicId]) {
-            activeSockets[user.publicId].subscribe(room.publicId);
+            await activeSockets[user.publicId].subscribe(room.publicId);
         }
-    });
+    }
+
     const response = JSON.stringify({
         name: "new chat created",
         content: {
@@ -180,62 +233,62 @@ async function handleCreateChat(ws, content) {
             room: {
                 type,
                 publicId: room.publicId,
+                inviteLink: room.inviteLink,
             },
         },
     });
-    ws.send(response);
-    return ws.publish(room.publicId, response);
-}
 
-wsRouter.ws(
-    "/",
-    {
-        idle_timeout: 60,
-        max_payload_length: 32 * 1024,
-    },
-    async (ws) => {
-        console.log(ws.ip + " is now connected using websockets!");
+    ws.publish(room.publicId, response);
+    return ws.send(response);
+});
 
-        ws.send("login");
+exports.seenMessage = catchAsync(async (ws, content) => {
+    const { chat } = content;
 
-        let loginTimeout = setTimeout(() => {
-            ws.close(1002, "login not received.");
-        }, 5000);
+    await User.findOneAndUpdate(
+        { publicId: ws.publicId, "seenMessages.publicId": chat.publicId },
+        { $set: { "seenMessages.$.lastSeenMessage": chat.numberId } }
+    );
 
-        ws.on("message", async (message) => {
-            console.log(message);
+    await Room.findOneAndUpdate(
+        {
+            publicId: chat.publicId,
+        },
+        {
+            $set: { "messages.$[i].seenStatus": "seen" },
+        },
+        {
+            arrayFilters: [{ "i.numberId": { $lte: chat.numberId } }],
+        }
+    );
 
-            try {
-                const { name, content } = await JSON.parse(message);
+    send(ws, "seen", { response: "ok" });
+});
 
-                switch (name) {
-                    case "login":
-                        clearTimeout(loginTimeout);
-                        return handleLogin(ws, content);
+exports.test = catchAsync(async (ws, content) => {
+    const file = await fs.readFile("./controllers/authController.js", "utf-8");
 
-                    case "text message":
-                        return handleTextMessage(ws, content);
+    send(ws, "very large info", { file });
+});
 
-                    case "join":
-                        return handleJoin(ws, content);
-                    case "create private chat":
-                        return handleCreateChat(ws, content);
-                    case "create public chat":
+exports.handleClose = (ws) => {
+    if (process.env.NODE_ENV === "development")
+        console.log(ws.ip + " has now disconnected!");
+    delete activeSockets[ws.publicId];
+};
 
-                    default:
-                        break;
-                }
-            } catch (error) {
-                console.log(error);
-                sendError(ws, error);
-            }
-        });
+exports.handleDeleteMessage = catchAsync(async (ws, content) => {
+    // TODO: decide how the delete works in pv (should u be able to delete the other person's shit)
+    const { publicId, numberId } = content;
 
-        ws.on("close", () => {
-            console.log(ws.ip + " has now disconnected!");
-            delete activeSockets[ws.publicId];
-        });
-    }
-);
+    const room = await Room.findOneAndUpdate(
+        {
+            publicId,
+            messages: { numberId, from: ws.publicId },
+        },
+        { $pull: { "messages.numberId": numberId } }
+    );
 
-module.exports = wsRouter;
+    console.log(room);
+    send(ws, "ok", { info: "ok" });
+});

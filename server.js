@@ -5,7 +5,7 @@ const morgan = require("morgan");
 
 const { errorHandler } = require("./controllers/errorController");
 const userRouter = require("./routes/userRoutes");
-const wsRouter = require("./controllers/wsController");
+const wsRouter = require("./routes/wsRoutes");
 
 const server = new HyperExpress.Server();
 
