@@ -15,7 +15,7 @@ wsRouter.ws(
         if (process.env.NODE_ENV === "development")
             console.log(ws.ip + " is now connected using websockets!");
 
-        ws.send("login");
+        // ws.send("login");
 
         let loginTimeout = setTimeout(() => {
             ws.close(1002, "login not received.");
@@ -56,7 +56,6 @@ wsRouter.ws(
                     return wsController.handleCreateChat(ws, content);
                 case "get updates":
                     return wsController.getUpdates(ws, content);
-
                 case "test":
                     return wsController.test(ws, content);
                 case "delete message":

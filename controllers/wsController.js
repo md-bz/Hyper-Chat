@@ -90,7 +90,8 @@ exports.handleLogin = catchAsync(async (ws, content) => {
 });
 
 exports.handleTextMessage = catchAsync(async (ws, content) => {
-    const { publicId, text, secret } = content;
+    const { publicId, text, publicKey, symmetricKey, symmetricIv, encrypted } =
+        content;
 
     if (!publicId || !text) return sendFormatError(ws, ["publicId", "text"]);
 
@@ -115,7 +116,7 @@ exports.handleTextMessage = catchAsync(async (ws, content) => {
     console.log("room is ", room);
 
     const response = JSON.stringify({
-        event: "text message",
+        name: "text message",
         content: {
             publicId,
             numberId,
@@ -124,7 +125,10 @@ exports.handleTextMessage = catchAsync(async (ws, content) => {
                 name: ws.name,
             },
             text,
-            secret,
+            publicKey,
+            symmetricKey,
+            symmetricIv,
+            encrypted,
         },
     });
 
