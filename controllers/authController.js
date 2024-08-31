@@ -3,8 +3,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModels");
 const AppError = require("../utils/AppError");
-const Email = require("../utils/email");
-const { hashResetToken } = require("../utils/resetPassword");
 
 const signToken = (id, ip) =>
     jwt.sign({ id, ip }, process.env.JWT_SECRET, {
@@ -45,8 +43,6 @@ exports.signup = async (req, res) => {
         password,
         passwordConfirm,
     });
-    const url = `${req.protocol}://${req.get("host")}/me`;
-    await new Email(newUser, url).sendWelcome();
 
     sendTokenResponse(newUser, res, req, 201);
 };
@@ -172,52 +168,4 @@ exports.restrictTo = (...roles) => {
 exports.tokenIsOptional = (req, res, next) => {
     req.optionalToken = true;
     next();
-};
-
-exports.forgotPassword = async (req, res) => {
-    const user = await User.findOne({ email: req.body.email });
-    if (!user) throw new AppError("there's no user with that Email", 404);
-
-    const resetToken = user.createPasswordResetToken();
-    await user.save({ validateBeforeSave: false });
-
-    try {
-        const resetUrl = `${req.protocol}://${req.get(
-            "host"
-        )}/api/v1/users/reset-password/${resetToken}`;
-        await new Email(user, resetUrl).sendPasswordReset(1);
-        res.status(200).json({
-            status: "success",
-            message: "token sent to email",
-        });
-    } catch (error) {
-        (user.passwordResetToken = undefined),
-            (user.passwordResetExpires = undefined),
-            await user.save();
-        throw new AppError(
-            "there was an error sending the email. try again",
-            500
-        );
-    }
-};
-exports.resetPassword = async (req, res) => {
-    const hashedToken = hashResetToken(req.params.token);
-
-    const user = await User.findOne({
-        passwordResetToken: hashedToken,
-        passwordResetExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-        throw new AppError("token is not valid or is expired", 400);
-    }
-
-    user.password = req.body.password;
-    user.passwordConfirm = req.body.passwordConfirm;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-
-    await user.save();
-
-    sendTokenResponse(user, res, req, 201);
 };

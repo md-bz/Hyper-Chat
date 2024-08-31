@@ -14,7 +14,7 @@ userRouter.route("/forgot-password").post(authController.forgotPassword);
 userRouter.route("/reset-password/:token").patch(authController.resetPassword);
 
 // #TODO : the commented lines need to be redone somehow
-// userRouter.use(authController.protect);
+userRouter.use(authController.protect);
 
 userRouter.route("/change-password").patch(authController.changePassword);
 userRouter
