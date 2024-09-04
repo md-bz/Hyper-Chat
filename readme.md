@@ -66,7 +66,7 @@ The application supports basic features like private chats and group chats. Ther
 
 -   The E2E messaging feature is still in beta and may not function as expected.
 -   Channel functionality is not implemented, even though a model exists.
--   The Protected and Restricted routes login is broken since the original codebase was in express and some things don't work, so right now all routes are available
+-   The Protected and Restricted routes logic is broken since the original codebase was in express and some things don't work, so right now all routes are available
 
 ## Future Updates
 
