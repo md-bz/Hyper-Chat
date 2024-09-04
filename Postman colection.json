@@ -1,0 +1,621 @@
+{
+	"info": {
+		"_postman_id": "260b9c0e-dec6-4008-b0b7-3428f51c8862",
+		"name": "Chat app",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33037859"
+	},
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Sign up",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"jwt\", pm.response.json().token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\":\"test \",\n    \"email\":\"test@gmail.com\",\n    \"password\":\"{{password}}\",\n    \"passwordConfirm\":\"{{password}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/signup",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"jwt2\", pm.response.json().token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test2@gmail.com\",\n    \"password\":\"{{password}}\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/login",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all users",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtAdmin}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/?limit=100",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								""
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Me",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/me",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete a user",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtAdmin}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/v1/users/6601643fe2fd9dd04c55305d",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"6601643fe2fd9dd04c55305d"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change user password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oldPassword\":\"hithisismypaass5\",\n    \"newPassword\":\"hithisismypaass\",\n    \"newPasswordConfirm\":\"hithisismypaass\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/change-password",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete all users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/v1/users/",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create new user",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt2}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\":\"admin\",\n    \"email\":\"admin@gmail.com\",\n    \"password\":\"{{password}}\",\n    \"passwordConfirm\":\"{{password}}\",\n    \"role\":\"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"jwt\", pm.response.json().token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\":\"user5@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/forgot-password",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"forgot-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"jwt\", pm.response.json().token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\":\"hithisismypaass2\",\n    \"passwordConfirm\":\"hithisismypaass2\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/reset-password/7c2a8c49e1d37f5a5dde7d666842334fc6045f5edb55895ba673f8be01300331",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"reset-password",
+								"7c2a8c49e1d37f5a5dde7d666842334fc6045f5edb55895ba673f8be01300331"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update me",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Leo Gillespies",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "photo",
+									"type": "file",
+									"src": "/home/mehrad/Pictures/314051-nature-blue-mountain.jpg",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/update-me",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"update-me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete me",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/delete-me",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"delete-me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update a user",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtAdmin}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"name\":\"superUser\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/65e59052a690c5b1ecc75fc2",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"65e59052a690c5b1ecc75fc2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user by id",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtAdmin}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/v1/users/65e35661bebcbaceeaea6659",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"65e35661bebcbaceeaea6659"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete test users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwtAdmin}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/v1/users/delete-tests",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"v1",
+								"users",
+								"delete-tests"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

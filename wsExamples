@@ -1,0 +1,33 @@
+{
+    "name": "login",
+    "content": {
+        "token": "{{jwt}}"
+    }
+}
+
+
+{
+    "name":"create chat",
+    "content":{
+        "name":"test group",
+        "type":"group",
+        "publicIds": ["user2_Id","user3_id"] //replace with the actual public ids
+    }
+}
+
+{
+    "name":"create chat",
+    "content":{
+        "name":"test private",
+        "type":"private",
+        "publicIds": ["user2_id"]//replace with the actual public id
+    }
+}
+
+{
+    "name":"text message",
+    "content":{
+        "publicId":"chat_publicId", //replace with the actual public id
+        "text":"hello",
+    }
+}
