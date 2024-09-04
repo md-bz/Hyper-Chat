@@ -8,10 +8,7 @@ const userRouter = new HyperExpress.Router();
 
 userRouter.route("/signup").post(authController.signup);
 userRouter.route("/login").post(authController.login);
-
 userRouter.route("/logout").get(authController.logout);
-userRouter.route("/forgot-password").post(authController.forgotPassword);
-userRouter.route("/reset-password/:token").patch(authController.resetPassword);
 
 // #TODO : the commented lines need to be redone somehow
 userRouter.use(authController.protect);
