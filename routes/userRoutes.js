@@ -11,7 +11,7 @@ userRouter.route("/login").post(authController.login);
 userRouter.route("/logout").get(authController.logout);
 
 // #TODO : the commented lines need to be redone somehow
-userRouter.use(authController.protect);
+// userRouter.use(authController.protect);
 
 userRouter.route("/change-password").patch(authController.changePassword);
 userRouter
